@@ -5,10 +5,11 @@ fetch('words.json')
     const maxWrong = 10;
     let wrongCount = 0;
     let wrongLog = [];
-    let currentIndex = 0;
+    let correctWords = new Set();
 
-    const allWords = shuffleArray([...data[level]]);
+    const fullWordList = shuffleArray([...data[level]]);
     const container = document.getElementById("game");
+
     container.innerHTML = `
       <div class="columns">
         <div id="english-words" class="word-column">
@@ -28,18 +29,26 @@ fetch('words.json')
     let selectedEnBtn = null;
     let selectedTrBtn = null;
 
-    function loadNextSet() {
-      if (wrongCount >= maxWrong || currentIndex >= allWords.length) {
+    function getNextWords() {
+      const remainingWords = fullWordList.filter(pair => !correctWords.has(pair.en));
+      if (remainingWords.length === 0 || wrongCount >= maxWrong) {
         endGame();
         return;
       }
 
+      const selected = shuffleArray(remainingWords).slice(0, 5);
+      return selected;
+    }
+
+    function loadNextSet() {
+      const nextWords = getNextWords();
+      if (!nextWords) return;
+
       enDiv.innerHTML = "";
       trDiv.innerHTML = "";
 
-      const wordSet = allWords.slice(currentIndex, currentIndex + 5);
-      const enWords = shuffleArray([...wordSet]);
-      const trWords = shuffleArray([...wordSet]);
+      const enWords = shuffleArray([...nextWords]);
+      const trWords = shuffleArray([...nextWords]);
 
       enWords.forEach(pair => {
         const btn = createButton(pair.en);
@@ -52,8 +61,6 @@ fetch('words.json')
         btn.dataset.en = pair.en;
         trDiv.appendChild(btn);
       });
-
-      currentIndex += 5;
     }
 
     function createButton(text) {
@@ -92,11 +99,14 @@ fetch('words.json')
           selectedEnBtn.disabled = true;
           selectedTrBtn.disabled = true;
 
+          // İlk yanlış yapılmışsa ve şimdi doğruysa yaz
           const wasWrong = wrongLog.find(w => w.en === enWord);
           if (wasWrong && !wasWrong.corrected) {
             resultDiv.innerHTML += `<p>${selectedEnBtn.textContent} = ${selectedTrBtn.textContent}</p>`;
             wasWrong.corrected = true;
           }
+
+          correctWords.add(enWord);
         } else {
           selectedEnBtn.classList.remove("selected");
           selectedTrBtn.classList.remove("selected");
