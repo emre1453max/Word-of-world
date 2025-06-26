@@ -1,11 +1,11 @@
 fetch('words.json')
   .then(response => response.json())
   .then(data => {
-    const level = "A1"; // Sabit A1 seviyesi, sonra kullanıcı seçimi eklenebilir
-    const wordPairs = data[level].slice(0, 5); // İlk 5 kelime
+    const level = "A1"; // Şu an sadece A1
+    const wordPairs = data[level].slice(0, 5);
 
-    const enWords = shuffleArray([...wordPairs]); // İngilizce
-    const trWords = shuffleArray([...wordPairs]); // Türkçe
+    const enWords = shuffleArray([...wordPairs]);
+    const trWords = shuffleArray([...wordPairs]);
 
     const container = document.getElementById("game");
     container.innerHTML = `
