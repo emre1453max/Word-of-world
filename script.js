@@ -1,7 +1,7 @@
 fetch('words.json')
   .then(response => response.json())
   .then(data => {
-    const level = "A1"; // Şu an sadece A1
+    const level = "A1";
     const wordPairs = data[level].slice(0, 5);
 
     const enWords = shuffleArray([...wordPairs]);
@@ -9,14 +9,12 @@ fetch('words.json')
 
     const container = document.getElementById("game");
     container.innerHTML = `
-      <div class="word-grid">
-        <div>
+      <div class="columns">
+        <div id="english-words" class="word-column">
           <h2>İngilizce</h2>
-          <div id="english-words" class="word-column"></div>
         </div>
-        <div>
+        <div id="turkish-words" class="word-column">
           <h2>Türkçe</h2>
-          <div id="turkish-words" class="word-column"></div>
         </div>
       </div>
       <div id="result"></div>
@@ -26,67 +24,79 @@ fetch('words.json')
     const trDiv = document.getElementById("turkish-words");
     const resultDiv = document.getElementById("result");
 
-    let selectedEn = null;
-    let selectedTr = null;
+    let selectedEnBtn = null;
+    let selectedTrBtn = null;
     let matchedWords = new Set();
 
-    function createButton(pair, lang) {
+    enWords.forEach(pair => {
+      const btn = createButton(pair.en);
+      btn.dataset.en = pair.en;
+      enDiv.appendChild(btn);
+    });
+
+    trWords.forEach(pair => {
+      const btn = createButton(pair.tr);
+      btn.dataset.en = pair.en;
+      trDiv.appendChild(btn);
+    });
+
+    function createButton(text) {
       const btn = document.createElement("button");
-      btn.textContent = lang === 'en' ? pair.en : pair.tr;
-      btn.dataset.key = pair.en; // ortak anahtar
-      btn.classList.add("word-button");
-
-      btn.onclick = () => {
-        if (btn.classList.contains("matched")) return;
-
-        const isEnglish = lang === 'en';
-        const selected = isEnglish ? selectedEn : selectedTr;
-
-        // Seçiliyse kaldır
-        if (selected === btn) {
-          btn.classList.remove("selected");
-          if (isEnglish) selectedEn = null;
-          else selectedTr = null;
-          return;
-        }
-
-        // Önceki varsa temizle
-        if (selected) selected.classList.remove("selected");
-
-        // Yeni seçimi ata
-        btn.classList.add("selected");
-        if (isEnglish) selectedEn = btn;
-        else selectedTr = btn;
-
-        // Eşleştirme kontrolü
-        if (selectedEn && selectedTr) {
-          const keyEn = selectedEn.dataset.key;
-          const keyTr = selectedTr.dataset.key;
-
-          const isMatch = keyEn === keyTr;
-          const result = document.createElement("p");
-          result.textContent = `${keyEn} = ${selectedTr.textContent} ➜ ${isMatch ? "✅ Doğru" : "❌ Yanlış"}`;
-          resultDiv.appendChild(result);
-
-          if (isMatch) {
-            selectedEn.classList.add("matched");
-            selectedTr.classList.add("matched");
-            selectedEn.disabled = true;
-            selectedTr.disabled = true;
-            matchedWords.add(keyEn);
-          }
-
-          selectedEn.classList.remove("selected");
-          selectedTr.classList.remove("selected");
-          selectedEn = null;
-          selectedTr = null;
-        }
-      };
+      btn.textContent = text;
+      btn.onclick = () => handleClick(btn);
       return btn;
     }
 
-    enWords.forEach(pair => enDiv.appendChild(createButton(pair, 'en')));
-    trWords.forEach(pair => trDiv.appendChild(createButton(pair, 'tr')));
+    function handleClick(btn) {
+      const isEnglish = btn.parentElement.id === "english-words";
+
+      // Seçim iptali
+      if (btn.classList.contains("selected")) {
+        btn.classList.remove("selected");
+        if (isEnglish) selectedEnBtn = null;
+        else selectedTrBtn = null;
+        return;
+      }
+
+      // Zaten eşleştirilmiş butona tıklanırsa işlem yapma
+      if (btn.classList.contains("matched")) return;
+
+      // Seçim
+      btn.classList.add("selected");
+      if (isEnglish) selectedEnBtn = btn;
+      else selectedTrBtn = btn;
+
+      // Eşleştirme yapılabilir mi?
+      if (selectedEnBtn && selectedTrBtn) {
+        const enWord = selectedEnBtn.dataset.en;
+        const trWord = selectedTrBtn.dataset.en;
+
+        const correct = enWord === trWord;
+
+        const msg = document.createElement("p");
+        msg.textContent = `${selectedEnBtn.textContent} = ${selectedTrBtn.textContent} ➜ ${correct ? "✅ Doğru" : "❌ Yanlış"}`;
+        resultDiv.appendChild(msg);
+
+        if (correct) {
+          selectedEnBtn.classList.remove("selected");
+          selectedTrBtn.classList.remove("selected");
+
+          selectedEnBtn.classList.add("matched");
+          selectedTrBtn.classList.add("matched");
+
+          selectedEnBtn.disabled = true;
+          selectedTrBtn.disabled = true;
+
+          matchedWords.add(enWord);
+        } else {
+          selectedEnBtn.classList.remove("selected");
+          selectedTrBtn.classList.remove("selected");
+        }
+
+        selectedEnBtn = null;
+        selectedTrBtn = null;
+      }
+    }
 
     function shuffleArray(array) {
       return array.sort(() => Math.random() - 0.5);
