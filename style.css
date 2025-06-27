@@ -1,11 +1,11 @@
-body {
-  font-family: sans-serif;
-  background: #f0f0f0;
-  padding: 20px;
+button.selected {
+  background-color: #007acc;
+  color: white;
 }
-h1 {
-  color: #333;
-}
-#game {
-  margin-top: 20px;
+
+button.matched {
+  background-color: #2ecc71 !important;
+  border-color: #2ecc71 !important;
+  color: white;
+  cursor: default;
 }
