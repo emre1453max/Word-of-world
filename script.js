@@ -1,11 +1,145 @@
 fetch('words.json')
   .then(response => response.json())
   .then(data => {
-    const a1Words = data["A1"].slice(0, 5);
+    const level = "A1";
+    const maxWrong = 10;
+    let wrongCount = 0;
+    let wrongLog = [];
+    let correctWords = new Set();
+    let shownWords = new Set();
+
+    const fullWordList = shuffleArray([...data[level]]);
     const container = document.getElementById("game");
-    a1Words.forEach(pair => {
-      const div = document.createElement("div");
-      div.textContent = pair.en + " = " + pair.tr;
-      container.appendChild(div);
-    });
+
+    container.innerHTML = `
+      <div class="columns">
+        <div id="english-words" class="word-column">
+          <h2>İngilizce</h2>
+        </div>
+        <div id="turkish-words" class="word-column">
+          <h2>Türkçe</h2>
+        </div>
+      </div>
+      <div id="result"></div>
+    `;
+
+    const enDiv = document.getElementById("english-words");
+    const trDiv = document.getElementById("turkish-words");
+    const resultDiv = document.getElementById("result");
+
+    let selectedEnBtn = null;
+    let selectedTrBtn = null;
+
+    function getNextWords() {
+      const remainingWords = fullWordList.filter(pair =>
+        !correctWords.has(pair.en) && !shownWords.has(pair.en)
+      );
+
+      if (remainingWords.length === 0 || wrongCount >= maxWrong) {
+        endGame();
+        return null;
+      }
+
+      const selected = shuffleArray(remainingWords).slice(0, 5);
+      selected.forEach(pair => shownWords.add(pair.en));
+      return selected;
+    }
+
+    function loadNextSet() {
+      const nextWords = getNextWords();
+      if (!nextWords) return;
+
+      enDiv.innerHTML = "";
+      trDiv.innerHTML = "";
+
+      const enWords = shuffleArray([...nextWords]);
+      const trWords = shuffleArray([...nextWords]);
+
+      enWords.forEach(pair => {
+        const btn = createButton(pair.en);
+        btn.dataset.en = pair.en;
+        enDiv.appendChild(btn);
+      });
+
+      trWords.forEach(pair => {
+        const btn = createButton(pair.tr);
+        btn.dataset.en = pair.en;
+        trDiv.appendChild(btn);
+      });
+    }
+
+    function createButton(text) {
+      const btn = document.createElement("button");
+      btn.textContent = text;
+      btn.onclick = () => handleClick(btn);
+      return btn;
+    }
+
+    function handleClick(btn) {
+      const isEnglish = btn.parentElement.id === "english-words";
+
+      if (btn.classList.contains("selected")) {
+        btn.classList.remove("selected");
+        if (isEnglish) selectedEnBtn = null;
+        else selectedTrBtn = null;
+        return;
+      }
+
+      if (btn.classList.contains("matched")) return;
+
+      btn.classList.add("selected");
+      if (isEnglish) selectedEnBtn = btn;
+      else selectedTrBtn = btn;
+
+      if (selectedEnBtn && selectedTrBtn) {
+        const enWord = selectedEnBtn.dataset.en;
+        const trWord = selectedTrBtn.dataset.en;
+        const correct = enWord === trWord;
+
+        if (correct) {
+          selectedEnBtn.classList.remove("selected");
+          selectedTrBtn.classList.remove("selected");
+          selectedEnBtn.classList.add("matched");
+          selectedTrBtn.classList.add("matched");
+          selectedEnBtn.disabled = true;
+          selectedTrBtn.disabled = true;
+
+          // Eğer daha önce hatalı eşleşmişse ve şimdi düzeldiyse göster
+          const wasWrong = wrongLog.find(w => w.en === enWord);
+          if (wasWrong && !wasWrong.corrected) {
+            resultDiv.innerHTML += `<p>${selectedEnBtn.textContent} = ${selectedTrBtn.textContent}</p>`;
+            wasWrong.corrected = true;
+          }
+
+          correctWords.add(enWord);
+        } else {
+          selectedEnBtn.classList.remove("selected");
+          selectedTrBtn.classList.remove("selected");
+
+          if (!wrongLog.find(w => w.en === enWord)) {
+            wrongLog.push({ en: enWord, tr: trWord, corrected: false });
+            wrongCount++;
+          }
+        }
+
+        selectedEnBtn = null;
+        selectedTrBtn = null;
+
+        const matchedCount = enDiv.querySelectorAll(".matched").length;
+        if (matchedCount === 5 * 2) {
+          loadNextSet();
+        }
+      }
+    }
+
+    function endGame() {
+      enDiv.innerHTML = "<p>Oyun bitti. 10 yanlış hakkını kullandın.</p>";
+      trDiv.innerHTML = "";
+    }
+
+    function shuffleArray(array) {
+      return array.sort(() => Math.random() - 0.5);
+    }
+
+    loadNextSet();
   });
