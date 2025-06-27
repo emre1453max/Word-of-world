@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voleybol Katılım Listesi</title>
+  <script>
+    const today = new Date().toLocaleDateString('tr-TR');
+    const STORAGE_KEY = `katilim_${today}`;
+    let currentUser = localStorage.getItem('user') || null;
+    let isAdmin = localStorage.getItem('isAdmin') === 'true';
+    let katilimListesi = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let registeredUsers = JSON.parse(localStorage.getItem('users')) || { 'emre': '1453' };
+
+    const lastSavedDate = localStorage.getItem('lastResetDate');
+    if (lastSavedDate !== today) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      localStorage.setItem('lastResetDate', today);
+      katilimListesi = [];
+    }
+
+    function saveList() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(katilimListesi));
+      renderList();
+    }
+
+    function saveUsers() {
+      localStorage.setItem('users', JSON.stringify(registeredUsers));
+    }
+
+    function login() {
+      const username = prompt("Kullanıcı adınızı girin:");
+      const password = prompt("Şifrenizi girin:");
+
+      if (username === 'emre' && password === '1453') {
+        currentUser = username;
+        isAdmin = true;
+        localStorage.setItem('user', username);
+        localStorage.setItem('isAdmin', 'true');
+        alert("Admin olarak giriş yapıldı.");
+      } else if (registeredUsers[username] === password) {
+        currentUser = username;
+        isAdmin = false;
+        localStorage.setItem('user', username);
+        localStorage.setItem('isAdmin', 'false');
+      } else {
+        alert("Giriş başarısız.");
+        return;
+      }
+
+      document.getElementById("login-btn").style.display = "none";
+      document.getElementById("add-btn").style.display = "inline-block";
+      document.getElementById("logout-btn").style.display = "inline-block";
+      if (isAdmin) document.getElementById("admin-panel").style.display = "block";
+      document.getElementById("user-greeting").innerText = `Merhaba, ${currentUser}`;
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('isAdmin');
+      location.reload();
+    }
+
+    function addName() {
+      if (!currentUser) return;
+      if (katilimListesi.includes(currentUser)) {
+        alert("Zaten listedesiniz.");
+        return;
+      }
+      katilimListesi.push(currentUser);
+      saveList();
+    }
+
+    function removeName(name) {
+      if (!isAdmin) return;
+      katilimListesi = katilimListesi.filter(item => item !== name);
+      saveList();
+    }
+
+    function resetList() {
+      if (!isAdmin) return;
+      katilimListesi = [];
+      saveList();
+    }
+
+    function exportCSV() {
+      if (!isAdmin) return;
+      const csvContent = "data:text/csv;charset=utf-8," + katilimListesi.map((e, i) => `${i+1},${e}`).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `voleybol_listesi_${today}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function registerUser() {
+      const newUsername = prompt("Yeni kullanıcı adı:");
+      const newPassword = prompt("Yeni kullanıcı şifresi:");
+      if (!newUsername || !newPassword) {
+        alert("Boş bırakmayın.");
+        return;
+      }
+      if (registeredUsers[newUsername]) {
+        alert("Bu kullanıcı zaten kayıtlı.");
+        return;
+      }
+      registeredUsers[newUsername] = newPassword;
+      saveUsers();
+      alert("Kullanıcı başarıyla eklendi.");
+    }
+
+    function renderList() {
+      const ana = katilimListesi.slice(0, 12);
+      const yedek = katilimListesi.slice(12, 14);
+      const ucuncuTakim = katilimListesi.slice(14);
+
+      document.getElementById("ana-takim").innerHTML = ana.map((isim, i) =>
+        `<li>${i+1}. ${isim}${isAdmin ? ` <button onclick='removeName("${isim}")'>❌</button>` : ''}</li>`).join("");
+
+      document.getElementById("yedek-takim").innerHTML = yedek.map((isim, i) =>
+        `<li>Y${i+1}. ${isim}${isAdmin ? ` <button onclick='removeName("${isim}")'>❌</button>` : ''}</li>`).join("");
+
+      document.getElementById("ucuncu-takim").innerHTML = ucuncuTakim.length > 0 ?
+        `<h3>3. Takım</h3><ul>${ucuncuTakim.map((isim, i) =>
+          `<li>3T${i+1}. ${isim}${isAdmin ? ` <button onclick='removeName("${isim}")'>❌</button>` : ''}</li>`).join("")}</ul>` : "";
+
+      if (currentUser && katilimListesi.includes(currentUser)) {
+        const sira = katilimListesi.indexOf(currentUser) + 1;
+        document.getElementById("sira-bilgi").innerText = `🧍‍♂️ Listenizdeki sıranız: ${sira}`;
+      } else {
+        document.getElementById("sira-bilgi").innerText = "";
+      }
+    }
+
+    window.onload = function () {
+      document.getElementById("tarih").innerText = today;
+      if (currentUser) {
+        document.getElementById("login-btn").style.display = "none";
+        document.getElementById("add-btn").style.display = "inline-block";
+        document.getElementById("logout-btn").style.display = "inline-block";
+        if (isAdmin) document.getElementById("admin-panel").style.display = "block";
+        document.getElementById("user-greeting").innerText = `Merhaba, ${currentUser}`;
+      }
+      renderList();
+    };
+  </script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f4f8; }
+    h1 { font-size: 1.5rem; }
+    ul { padding-left: 20px; }
+    button { margin-top: 10px; padding: 8px 12px; cursor: pointer; }
+    #admin-panel button { margin-right: 10px; }
+    @media screen and (max-width: 600px) {
+      body { padding: 10px; font-size: 0.95rem; }
+      button { padding: 6px 10px; font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <h1>📅 <span id="tarih"></span> Voleybol Katılım Listesi</h1>
+  <p id="user-greeting"></p>
+  <p id="sira-bilgi"></p>
+  <button id="login-btn" onclick="login()">Giriş Yap</button>
+  <button id="logout-btn" onclick="logout()" style="display:none">Çıkış Yap</button>
+  <button id="add-btn" onclick="addName()" style="display:none">İsmini Listeye Ekle</button>
+
+  <div id="admin-panel" style="display:none; margin-top:20px;">
+    <h3>🔧 Admin Paneli</h3>
+    <button onclick="resetList()">Listeyi Sıfırla</button>
+    <button onclick="exportCSV()">Listeyi CSV Olarak İndir</button>
+    <button onclick="registerUser()">Yeni Kullanıcı Ekle</button>
+  </div>
+
+  <h2>🟢 Ana Takım</h2>
+  <ul id="ana-takim"></ul>
+
+  <h2>🟡 Yedekler</h2>
+  <ul id="yedek-takim"></ul>
+
+  <div id="ucuncu-takim"></div>
+</body>
+</html>
