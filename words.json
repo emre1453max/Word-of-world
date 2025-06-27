@@ -946,7 +946,7 @@
     {"en":"youth","tr":"gençlik"}
   ],
   "B2": [
-     {"en": "accurate", "tr": "doğru"},
+  {"en": "accurate", "tr": "doğru"},
   {"en": "acknowledge", "tr": "kabul etmek"},
   {"en": "acquire", "tr": "edinmek"},
   {"en": "adapt", "tr": "uyum sağlamak"},
@@ -997,7 +997,7 @@
   {"en": "contradict", "tr": "çelişmek"},
   {"en": "contribute", "tr": "katkı sağlamak"},
   {"en": "controversy", "tr": "tartışma"}
-    {"en": "conventional", "tr": "geleneksel"},
+  {"en": "conventional", "tr": "geleneksel"},
   {"en": "convince", "tr": "ikna etmek"},
   {"en": "core", "tr": "çekirdek"},
   {"en": "criteria", "tr": "kriterler"},
@@ -1097,7 +1097,7 @@
   {"en": "integrity", "tr": "dürüstlük"},
   {"en": "intelligence", "tr": "zeka"},
   {"en": "intense", "tr": "yoğun"}
-    {"en": "interact", "tr": "etkileşim kurmak"},
+  {"en": "interact", "tr": "etkileşim kurmak"},
   {"en": "intermediate", "tr": "orta düzey"},
   {"en": "interpret", "tr": "yorumlamak"},
   {"en": "interval", "tr": "aralık"},
@@ -1148,9 +1148,9 @@
   {"en": "passive", "tr": "pasif"},
   {"en": "perceive", "tr": "algılamak"},
   {"en": "persist", "tr": "ısrar etmek"}
-     ],
+  ],
   "C1": [
-    {"en": "accommodate", "tr": "uyum sağlamak"},
+  {"en": "accommodate", "tr": "uyum sağlamak"},
   {"en": "acquisition", "tr": "edinim"},
   {"en": "advocate", "tr": "savunucu"},
   {"en": "aggregate", "tr": "toplam"},
@@ -1314,9 +1314,9 @@
   {"en": "vindicate", "tr": "aklamak"},
   {"en": "vulnerable", "tr": "savunmasız"},
   {"en": "withheld", "tr": "alıkonmuş"}
-    ],
+  ],
   "C2": [
-    {"en": "aberration", "tr": "sapma"},
+  {"en": "aberration", "tr": "sapma"},
   {"en": "abnegation", "tr": "inkâr"},
   {"en": "abstruse", "tr": "anlaşılması güç"},
   {"en": "acquiesce", "tr": "rıza göstermek"},
