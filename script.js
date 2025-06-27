@@ -6,6 +6,7 @@ fetch('words.json')
     let wrongCount = 0;
     let wrongLog = [];
     let correctWords = new Set();
+    let shownWords = new Set();
 
     const fullWordList = shuffleArray([...data[level]]);
     const container = document.getElementById("game");
@@ -30,13 +31,17 @@ fetch('words.json')
     let selectedTrBtn = null;
 
     function getNextWords() {
-      const remainingWords = fullWordList.filter(pair => !correctWords.has(pair.en));
+      const remainingWords = fullWordList.filter(pair =>
+        !correctWords.has(pair.en) && !shownWords.has(pair.en)
+      );
+
       if (remainingWords.length === 0 || wrongCount >= maxWrong) {
         endGame();
-        return;
+        return null;
       }
 
       const selected = shuffleArray(remainingWords).slice(0, 5);
+      selected.forEach(pair => shownWords.add(pair.en));
       return selected;
     }
 
@@ -99,7 +104,7 @@ fetch('words.json')
           selectedEnBtn.disabled = true;
           selectedTrBtn.disabled = true;
 
-          // İlk yanlış yapılmışsa ve şimdi doğruysa yaz
+          // Eğer daha önce hatalı eşleşmişse ve şimdi düzeldiyse göster
           const wasWrong = wrongLog.find(w => w.en === enWord);
           if (wasWrong && !wasWrong.corrected) {
             resultDiv.innerHTML += `<p>${selectedEnBtn.textContent} = ${selectedTrBtn.textContent}</p>`;
