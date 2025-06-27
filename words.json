@@ -1,8 +1,14 @@
 {
   "A1": [
-    {"en":"apple","tr":"elma"},
-    {"en":"house","tr":"ev"},
-    {"en":"book","tr":"kitap"},
+    {
+      "en":"apple","tr":"elma"
+    },
+    {
+      "en":"house","tr":"ev"
+    },
+    {
+      "en":"book","tr":"kitap"
+    },
     {"en":"cat","tr":"kedi"},
     {"en":"dog","tr":"köpek"},
     {"en":"car","tr":"araba"},
