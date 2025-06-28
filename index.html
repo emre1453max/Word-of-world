@@ -2,13 +2,205 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Kelime Eşleştirme Oyunu</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      transition: background 0.3s, color 0.3s;
+    }
+    :root {
+      --bg: #ffffff;
+      --text: #000000;
+      --card: #f0f0f0;
+    }
+    body.dark {
+      --bg: #121212;
+      --text: #ffffff;
+      --card: #1e1e1e;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 20px;
+    }
+    .btn {
+      padding: 6px 12px;
+      margin-left: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .game-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      padding: 20px;
+    }
+    .card {
+      background: var(--card);
+      padding: 15px 25px;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .card:hover {
+      background: #cce5ff;
+    }
+    @media (max-width: 600px) {
+      .card {
+        width: 100px;
+        font-size: 14px;
+      }
+    }
+    #mistake-list {
+      display: none;
+      position: absolute;
+      top: 50px;
+      right: 20px;
+      background: var(--card);
+      padding: 10px;
+      border-radius: 6px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
 </head>
 <body>
-  <h1>Kelime Eşleştirme Oyunu</h1>
-  <div id="game"></div>
-  <script src="script.js"></script>
+  <header>
+    <div>
+      <button onclick="toggleTheme()" class="btn">🌗 Tema</button>
+    </div>
+    <div>
+      <button onclick="toggleMistakes()" class="btn">❌ Yanlışlar</button>
+    </div>
+  </header>
+
+  <div id="mistake-list"></div>
+  <div class="game-container" id="game"></div>
+
+  <script>
+    const words = [
+      {en: "apple", tr: "elma"},
+      {en: "house", tr: "ev"},
+      {en: "car", tr: "araba"},
+      {en: "cat", tr: "kedi"},
+      {en: "dog", tr: "köpek"},
+      {en: "water", tr: "su"},
+      {en: "book", tr: "kitap"},
+      {en: "tree", tr: "ağaç"},
+      {en: "bread", tr: "ekmek"},
+      {en: "milk", tr: "süt"},
+      {en: "window", tr: "pencere"},
+      {en: "door", tr: "kapı"},
+      {en: "sun", tr: "güneş"},
+      {en: "pen", tr: "kalem"},
+      {en: "table", tr: "masa"},
+      {en: "chair", tr: "sandalye"},
+      {en: "school", tr: "okul"},
+      {en: "fish", tr: "balık"},
+      {en: "bird", tr: "kuş"},
+      {en: "blue", tr: "mavi"}
+    ];
+
+    let usedIndexes = new Set();
+    let currentPairs = [];
+    let selected = null;
+    let mistakes = [];
+    let mistakeCount = 0;
+
+    function getRandomPairs(count = 5) {
+      const available = words.filter((_, i) => !usedIndexes.has(i));
+      const shuffled = available.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, count);
+      selected.forEach(w => usedIndexes.add(words.indexOf(w)));
+      return selected;
+    }
+
+    function renderGame() {
+      const game = document.getElementById("game");
+      game.innerHTML = "";
+      currentPairs = getRandomPairs();
+
+      const english = currentPairs.map(w => ({lang: 'en', word: w.en}));
+      const turkish = currentPairs.map(w => ({lang: 'tr', word: w.tr}));
+      const cards = [...english, ...turkish].sort(() => Math.random() - 0.5);
+
+      cards.forEach(card => {
+        const el = document.createElement("div");
+        el.className = "card";
+        el.textContent = card.word;
+        el.dataset.lang = card.lang;
+        el.onclick = () => handleSelect(el, card.word, card.lang);
+        game.appendChild(el);
+      });
+    }
+
+    function handleSelect(el, word, lang) {
+      if (!selected) {
+        selected = {el, word, lang};
+        el.style.background = "#a0d8f1";
+      } else {
+        if (selected.el === el) return;
+
+        const match = currentPairs.find(p =>
+          (p.en === selected.word && p.tr === word) ||
+          (p.tr === selected.word && p.en === word)
+        );
+
+        if (match) {
+          selected.el.style.background = "#90ee90";
+          el.style.background = "#90ee90";
+          selected.el.onclick = null;
+          el.onclick = null;
+        } else {
+          selected.el.style.background = "#f08080";
+          el.style.background = "#f08080";
+          mistakes.push(selected.word + " - " + word);
+          mistakeCount++;
+
+          if (mistakeCount >= 5) {
+            alert("5 yanlış yaptın! Oyun bitti.");
+            return;
+          }
+
+          setTimeout(() => {
+            selected.el.style.background = "";
+            el.style.background = "";
+          }, 1000);
+        }
+
+        selected = null;
+
+        // Tüm kartlar eşleştiyse yeni 5'li getir
+        const unmatched = [...document.querySelectorAll(".card")]
+          .filter(card => card.onclick !== null);
+        if (unmatched.length === 0) {
+          renderGame();
+        }
+      }
+    }
+
+    function toggleMistakes() {
+      const list = document.getElementById("mistake-list");
+      if (list.style.display === "block") {
+        list.style.display = "none";
+      } else {
+        list.innerHTML = "<strong>Yanlışlar:</strong><ul>" + mistakes.map(m => "<li>" + m + "</li>").join("") + "</ul>";
+        list.style.display = "block";
+      }
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle("dark");
+    }
+
+    renderGame();
+  </script>
 </body>
 </html>
