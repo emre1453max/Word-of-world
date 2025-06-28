@@ -99,25 +99,33 @@
   </div>
 
   <script>
-    const words = [
-      {en: "apple", tr: "elma"}, {en: "book", tr: "kitap"}, {en: "car", tr: "araba"}, {en: "cat", tr: "kedi"},
-      {en: "dog", tr: "köpek"}, {en: "milk", tr: "süt"}, {en: "bread", tr: "ekmek"}, {en: "sun", tr: "güneş"},
-      {en: "moon", tr: "ay"}, {en: "tree", tr: "ağaç"}, {en: "chair", tr: "sandalye"}, {en: "table", tr: "masa"},
-      {en: "door", tr: "kapı"}, {en: "water", tr: "su"}, {en: "pen", tr: "kalem"}, {en: "blue", tr: "mavi"},
-      {en: "red", tr: "kırmızı"}, {en: "bird", tr: "kuş"}, {en: "window", tr: "pencere"}, {en: "school", tr: "okul"}
-    ];
-
+    let words = [];
     let user = null;
     let selected = null;
     let used = [];
     let mistakes = [];
     let mistakeCount = 0;
 
+    fetch('word.json')
+      .then(res => res.json())
+      .then(data => {
+        words = data["A1"]; // Seviye seçimi buradan yapılabilir
+        const savedUser = localStorage.getItem("active_user");
+        if (savedUser) {
+          user = savedUser;
+          loadProgress();
+          document.getElementById("login-screen").classList.add("hidden");
+          document.getElementById("game-screen").classList.remove("hidden");
+          renderSet();
+        }
+      });
+
     function login() {
       const u = document.getElementById("username").value.trim().toLowerCase();
       const p = document.getElementById("password").value.trim().toLowerCase();
       if ((u === "emre" && p === "1453") || getUsers()[u] === p) {
         user = u;
+        localStorage.setItem("active_user", user);
         loadProgress();
         document.getElementById("login-screen").classList.add("hidden");
         document.getElementById("game-screen").classList.remove("hidden");
@@ -128,6 +136,7 @@
     }
 
     function logout() {
+      localStorage.removeItem("active_user");
       location.reload();
     }
 
