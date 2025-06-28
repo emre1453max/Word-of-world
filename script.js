@@ -1,145 +1,84 @@
-fetch('words.json')
-  .then(response => response.json())
-  .then(data => {
-    const level = "A1";
-    const maxWrong = 10;
-    let wrongCount = 0;
-    let wrongLog = [];
-    let correctWords = new Set();
-    let shownWords = new Set();
+let allWords = [];              // Tüm kelimeler (200 adet)
+let usedWords = [];             // Kullanılan kelimeler (id veya kelime)
+let wrongAnswers = [];
+let correctCount = 0;
 
-    const fullWordList = shuffleArray([...data[level]]);
-    const container = document.getElementById("game");
+const MAX_WRONG = 5;
+const WORD_BATCH = 5;
 
-    container.innerHTML = `
-      <div class="columns">
-        <div id="english-words" class="word-column">
-          <h2>İngilizce</h2>
-        </div>
-        <div id="turkish-words" class="word-column">
-          <h2>Türkçe</h2>
-        </div>
-      </div>
-      <div id="result"></div>
-    `;
+async function startGame() {
+  const res = await fetch("word.json");
+  const data = await res.json();
+  allWords = data.A1; // A1 seviyesinden al
 
-    const enDiv = document.getElementById("english-words");
-    const trDiv = document.getElementById("turkish-words");
-    const resultDiv = document.getElementById("result");
+  const savedState = JSON.parse(localStorage.getItem("gameState"));
+  if (savedState) {
+    usedWords = savedState.usedWords;
+    wrongAnswers = savedState.wrongAnswers;
+    correctCount = savedState.correctCount;
+  }
 
-    let selectedEnBtn = null;
-    let selectedTrBtn = null;
+  loadNewWords();
+}
 
-    function getNextWords() {
-      const remainingWords = fullWordList.filter(pair =>
-        !correctWords.has(pair.en) && !shownWords.has(pair.en)
-      );
+function loadNewWords() {
+  const unusedWords = allWords.filter(w => !usedWords.includes(w.en));
+  
+  if (wrongAnswers.length >= MAX_WRONG) {
+    showEndMessage("5 yanlış yaptınız!");
+    return;
+  }
 
-      if (remainingWords.length === 0 || wrongCount >= maxWrong) {
-        endGame();
-        return null;
-      }
+  if (unusedWords.length === 0) {
+    showEndMessage("Tüm kelimeleri bitirdiniz!");
+    return;
+  }
 
-      const selected = shuffleArray(remainingWords).slice(0, 5);
-      selected.forEach(pair => shownWords.add(pair.en));
-      return selected;
-    }
+  const newSet = getRandomWords(unusedWords, WORD_BATCH);
+  usedWords.push(...newSet.map(w => w.en));
+  renderWords(newSet);
+  saveGameState();
+}
 
-    function loadNextSet() {
-      const nextWords = getNextWords();
-      if (!nextWords) return;
+function saveGameState() {
+  const state = {
+    usedWords,
+    wrongAnswers,
+    correctCount
+  };
+  localStorage.setItem("gameState", JSON.stringify(state));
+}
 
-      enDiv.innerHTML = "";
-      trDiv.innerHTML = "";
+function handleMatch(en, tr) {
+  const match = allWords.find(w => w.en === en && w.tr === tr);
+  if (match) {
+    correctCount++;
+  } else {
+    wrongAnswers.push({ en, tr });
+  }
 
-      const enWords = shuffleArray([...nextWords]);
-      const trWords = shuffleArray([...nextWords]);
+  if (correctCount % WORD_BATCH === 0) {
+    loadNewWords();
+  }
 
-      enWords.forEach(pair => {
-        const btn = createButton(pair.en);
-        btn.dataset.en = pair.en;
-        enDiv.appendChild(btn);
-      });
+  saveGameState();
+}
 
-      trWords.forEach(pair => {
-        const btn = createButton(pair.tr);
-        btn.dataset.en = pair.en;
-        trDiv.appendChild(btn);
-      });
-    }
+function showEndMessage(msg) {
+  document.body.innerHTML += `
+    <div class="end-message">
+      <h2>${msg}</h2>
+      <button onclick="restartGame()">Yeniden Başla</button>
+    </div>
+  `;
+}
 
-    function createButton(text) {
-      const btn = document.createElement("button");
-      btn.textContent = text;
-      btn.onclick = () => handleClick(btn);
-      return btn;
-    }
+function restartGame() {
+  localStorage.removeItem("gameState");
+  location.reload();
+}
 
-    function handleClick(btn) {
-      const isEnglish = btn.parentElement.id === "english-words";
-
-      if (btn.classList.contains("selected")) {
-        btn.classList.remove("selected");
-        if (isEnglish) selectedEnBtn = null;
-        else selectedTrBtn = null;
-        return;
-      }
-
-      if (btn.classList.contains("matched")) return;
-
-      btn.classList.add("selected");
-      if (isEnglish) selectedEnBtn = btn;
-      else selectedTrBtn = btn;
-
-      if (selectedEnBtn && selectedTrBtn) {
-        const enWord = selectedEnBtn.dataset.en;
-        const trWord = selectedTrBtn.dataset.en;
-        const correct = enWord === trWord;
-
-        if (correct) {
-          selectedEnBtn.classList.remove("selected");
-          selectedTrBtn.classList.remove("selected");
-          selectedEnBtn.classList.add("matched");
-          selectedTrBtn.classList.add("matched");
-          selectedEnBtn.disabled = true;
-          selectedTrBtn.disabled = true;
-
-          // Eğer daha önce hatalı eşleşmişse ve şimdi düzeldiyse göster
-          const wasWrong = wrongLog.find(w => w.en === enWord);
-          if (wasWrong && !wasWrong.corrected) {
-            resultDiv.innerHTML += `<p>${selectedEnBtn.textContent} = ${selectedTrBtn.textContent}</p>`;
-            wasWrong.corrected = true;
-          }
-
-          correctWords.add(enWord);
-        } else {
-          selectedEnBtn.classList.remove("selected");
-          selectedTrBtn.classList.remove("selected");
-
-          if (!wrongLog.find(w => w.en === enWord)) {
-            wrongLog.push({ en: enWord, tr: trWord, corrected: false });
-            wrongCount++;
-          }
-        }
-
-        selectedEnBtn = null;
-        selectedTrBtn = null;
-
-        const matchedCount = enDiv.querySelectorAll(".matched").length;
-        if (matchedCount === 5 * 2) {
-          loadNextSet();
-        }
-      }
-    }
-
-    function endGame() {
-      enDiv.innerHTML = "<p>Oyun bitti. 10 yanlış hakkını kullandın.</p>";
-      trDiv.innerHTML = "";
-    }
-
-    function shuffleArray(array) {
-      return array.sort(() => Math.random() - 0.5);
-    }
-
-    loadNextSet();
-  });
+function getRandomWords(arr, count) {
+  const shuffled = arr.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+}
