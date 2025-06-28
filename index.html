@@ -1,18 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kelime Eşleştirme Oyunu</title>
+  <title>Kelime Oyunu</title>
   <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg);
-      color: var(--text);
-      transition: background 0.3s, color 0.3s;
-    }
     :root {
       --bg: #ffffff;
       --text: #000000;
@@ -23,45 +15,61 @@
       --text: #ffffff;
       --card: #1e1e1e;
     }
-    header {
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: 0.3s;
+    }
+    .hidden { display: none; }
+    .container { padding: 20px; }
+    .input-group { margin-bottom: 10px; }
+    .input-group input {
+      padding: 8px;
+      width: 100%;
+      max-width: 250px;
+    }
+    .btn {
+      padding: 8px 12px;
+      margin: 5px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+    }
+    .topbar {
       display: flex;
       justify-content: space-between;
       padding: 10px 20px;
     }
-    .btn {
-      padding: 6px 12px;
-      margin-left: 10px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .game-container {
+    .game-columns {
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
-      gap: 15px;
-      padding: 20px;
+      gap: 40px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
     .card {
+      padding: 12px 20px;
       background: var(--card);
-      padding: 15px 25px;
-      border-radius: 8px;
+      border-radius: 6px;
+      text-align: center;
       cursor: pointer;
       user-select: none;
     }
-    .card:hover {
-      background: #cce5ff;
-    }
-    @media (max-width: 600px) {
-      .card {
-        width: 100px;
-        font-size: 14px;
-      }
+    .card:hover { background: #cce5ff; }
+    .admin-panel {
+      margin-top: 20px;
     }
     #mistake-list {
       display: none;
       position: absolute;
-      top: 50px;
+      top: 60px;
       right: 20px;
       background: var(--card);
       padding: 10px;
@@ -69,138 +77,222 @@
       max-height: 300px;
       overflow-y: auto;
     }
+    @media(max-width: 600px) {
+      .card { font-size: 14px; }
+      .game-columns { flex-direction: column; align-items: center; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div>
-      <button onclick="toggleTheme()" class="btn">🌗 Tema</button>
-    </div>
-    <div>
-      <button onclick="toggleMistakes()" class="btn">❌ Yanlışlar</button>
-    </div>
-  </header>
 
-  <div id="mistake-list"></div>
-  <div class="game-container" id="game"></div>
+  <!-- GİRİŞ EKRANI -->
+  <div id="login-screen" class="container">
+    <h2>Giriş Yap</h2>
+    <div class="input-group">
+      <input type="text" id="username" placeholder="Kullanıcı Adı" />
+    </div>
+    <div class="input-group">
+      <input type="password" id="password" placeholder="Şifre" />
+    </div>
+    <button class="btn" onclick="login()">Giriş</button>
+  </div>
+
+  <!-- OYUN EKRANI -->
+  <div id="game-screen" class="container hidden">
+    <div class="topbar">
+      <div>
+        <button class="btn" onclick="toggleTheme()">🌗 Tema</button>
+        <button class="btn" onclick="toggleMistakes()">❌ Yanlışlar</button>
+        <button class="btn" onclick="logout()">Çıkış</button>
+      </div>
+      <div id="admin-panel-btn" class="hidden">
+        <button class="btn" onclick="showAdmin()">👑 Admin Panel</button>
+      </div>
+    </div>
+
+    <div id="mistake-list"></div>
+
+    <div class="game-columns">
+      <div class="column" id="left-col"></div>
+      <div class="column" id="right-col"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div id="admin-screen" class="container hidden">
+    <h3>Yeni Kullanıcı Ekle</h3>
+    <div class="input-group">
+      <input type="text" id="new-username" placeholder="Yeni kullanıcı adı" />
+    </div>
+    <div class="input-group">
+      <input type="text" id="new-password" placeholder="Yeni şifre" />
+    </div>
+    <button class="btn" onclick="addUser()">Ekle</button>
+    <button class="btn" onclick="closeAdmin()">Geri</button>
+  </div>
 
   <script>
-    const words = [
-      {en: "apple", tr: "elma"},
-      {en: "house", tr: "ev"},
-      {en: "car", tr: "araba"},
-      {en: "cat", tr: "kedi"},
-      {en: "dog", tr: "köpek"},
-      {en: "water", tr: "su"},
-      {en: "book", tr: "kitap"},
-      {en: "tree", tr: "ağaç"},
-      {en: "bread", tr: "ekmek"},
-      {en: "milk", tr: "süt"},
-      {en: "window", tr: "pencere"},
-      {en: "door", tr: "kapı"},
-      {en: "sun", tr: "güneş"},
-      {en: "pen", tr: "kalem"},
-      {en: "table", tr: "masa"},
-      {en: "chair", tr: "sandalye"},
-      {en: "school", tr: "okul"},
-      {en: "fish", tr: "balık"},
-      {en: "bird", tr: "kuş"},
-      {en: "blue", tr: "mavi"}
+    const kelimeler = [
+      {en:"apple", tr:"elma"}, {en:"book", tr:"kitap"}, {en:"car", tr:"araba"}, {en:"dog", tr:"köpek"},
+      {en:"cat", tr:"kedi"}, {en:"tree", tr:"ağaç"}, {en:"milk", tr:"süt"}, {en:"pen", tr:"kalem"},
+      {en:"sun", tr:"güneş"}, {en:"moon", tr:"ay"}, {en:"school", tr:"okul"}, {en:"water", tr:"su"},
+      {en:"fish", tr:"balık"}, {en:"bread", tr:"ekmek"}, {en:"chair", tr:"sandalye"}, {en:"table", tr:"masa"},
+      {en:"window", tr:"pencere"}, {en:"door", tr:"kapı"}, {en:"blue", tr:"mavi"}, {en:"bird", tr:"kuş"}
     ];
 
+    let user = null;
+    let mistakes = [];
+    let mistakeCount = 0;
     let usedIndexes = new Set();
     let currentPairs = [];
     let selected = null;
-    let mistakes = [];
-    let mistakeCount = 0;
 
-    function getRandomPairs(count = 5) {
-      const available = words.filter((_, i) => !usedIndexes.has(i));
-      const shuffled = available.sort(() => 0.5 - Math.random());
-      const selected = shuffled.slice(0, count);
-      selected.forEach(w => usedIndexes.add(words.indexOf(w)));
-      return selected;
-    }
+    function login() {
+      let u = document.getElementById("username").value.trim().toLowerCase();
+      let p = document.getElementById("password").value.trim().toLowerCase();
 
-    function renderGame() {
-      const game = document.getElementById("game");
-      game.innerHTML = "";
-      currentPairs = getRandomPairs();
-
-      const english = currentPairs.map(w => ({lang: 'en', word: w.en}));
-      const turkish = currentPairs.map(w => ({lang: 'tr', word: w.tr}));
-      const cards = [...english, ...turkish].sort(() => Math.random() - 0.5);
-
-      cards.forEach(card => {
-        const el = document.createElement("div");
-        el.className = "card";
-        el.textContent = card.word;
-        el.dataset.lang = card.lang;
-        el.onclick = () => handleSelect(el, card.word, card.lang);
-        game.appendChild(el);
-      });
-    }
-
-    function handleSelect(el, word, lang) {
-      if (!selected) {
-        selected = {el, word, lang};
-        el.style.background = "#a0d8f1";
+      const users = JSON.parse(localStorage.getItem("users") || "{}");
+      if ((u === "emre" && p === "1453") || (users[u] && users[u] === p)) {
+        user = u;
+        localStorage.setItem("currentUser", u);
+        document.getElementById("login-screen").classList.add("hidden");
+        document.getElementById("game-screen").classList.remove("hidden");
+        if (u === "emre") document.getElementById("admin-panel-btn").classList.remove("hidden");
+        loadUserData();
+        renderGame();
       } else {
-        if (selected.el === el) return;
-
-        const match = currentPairs.find(p =>
-          (p.en === selected.word && p.tr === word) ||
-          (p.tr === selected.word && p.en === word)
-        );
-
-        if (match) {
-          selected.el.style.background = "#90ee90";
-          el.style.background = "#90ee90";
-          selected.el.onclick = null;
-          el.onclick = null;
-        } else {
-          selected.el.style.background = "#f08080";
-          el.style.background = "#f08080";
-          mistakes.push(selected.word + " - " + word);
-          mistakeCount++;
-
-          if (mistakeCount >= 5) {
-            alert("5 yanlış yaptın! Oyun bitti.");
-            return;
-          }
-
-          setTimeout(() => {
-            selected.el.style.background = "";
-            el.style.background = "";
-          }, 1000);
-        }
-
-        selected = null;
-
-        // Tüm kartlar eşleştiyse yeni 5'li getir
-        const unmatched = [...document.querySelectorAll(".card")]
-          .filter(card => card.onclick !== null);
-        if (unmatched.length === 0) {
-          renderGame();
-        }
+        alert("Kullanıcı adı veya şifre yanlış.");
       }
     }
 
-    function toggleMistakes() {
-      const list = document.getElementById("mistake-list");
-      if (list.style.display === "block") {
-        list.style.display = "none";
-      } else {
-        list.innerHTML = "<strong>Yanlışlar:</strong><ul>" + mistakes.map(m => "<li>" + m + "</li>").join("") + "</ul>";
-        list.style.display = "block";
-      }
+    function logout() {
+      localStorage.removeItem("currentUser");
+      location.reload();
     }
 
     function toggleTheme() {
       document.body.classList.toggle("dark");
     }
 
-    renderGame();
+    function toggleMistakes() {
+      const list = document.getElementById("mistake-list");
+      list.style.display = (list.style.display === "block") ? "none" : "block";
+      list.innerHTML = "<strong>Yanlışlar:</strong><ul>" + mistakes.map(w => "<li>" + w + "</li>").join("") + "</ul>";
+    }
+
+    function getRandomPairs() {
+      const remaining = kelimeler.filter((_, i) => !usedIndexes.has(i));
+      const selected = remaining.sort(() => 0.5 - Math.random()).slice(0, 5);
+      selected.forEach(w => usedIndexes.add(kelimeler.indexOf(w)));
+      return selected;
+    }
+
+    function renderGame() {
+      selected = null;
+      currentPairs = getRandomPairs();
+      const left = document.getElementById("left-col");
+      const right = document.getElementById("right-col");
+      left.innerHTML = ""; right.innerHTML = "";
+
+      let enCards = currentPairs.map(w => ({text: w.en, match: w.tr, lang: 'en'}));
+      let trCards = currentPairs.map(w => ({text: w.tr, match: w.en, lang: 'tr'}));
+      enCards.sort(() => 0.5 - Math.random());
+      trCards.sort(() => 0.5 - Math.random());
+
+      enCards.forEach(c => left.appendChild(createCard(c)));
+      trCards.forEach(c => right.appendChild(createCard(c)));
+    }
+
+    function createCard(data) {
+      const el = document.createElement("div");
+      el.className = "card";
+      el.textContent = data.text;
+      el.onclick = () => handleClick(el, data);
+      return el;
+    }
+
+    function handleClick(el, data) {
+      if (selected && selected.el === el) {
+        el.style.background = "";
+        selected = null;
+        return;
+      }
+
+      if (!selected) {
+        selected = {el, data};
+        el.style.background = "#a0d8f1";
+        return;
+      }
+
+      const match = selected.data.match === data.text && selected.data.lang !== data.lang;
+      if (match) {
+        el.style.background = "#90ee90";
+        selected.el.style.background = "#90ee90";
+        el.onclick = null;
+        selected.el.onclick = null;
+        setTimeout(() => {
+          if (document.querySelectorAll(".card[onclick]").length === 0) renderGame();
+        }, 300);
+      } else {
+        el.style.background = "#f08080";
+        selected.el.style.background = "#f08080";
+        mistakes.push(selected.data.text + " ↔ " + data.text);
+        mistakeCount++;
+        if (mistakeCount >= 5) {
+          alert("5 yanlış yapıldı! Oyun bitti.");
+        } else {
+          setTimeout(() => {
+            el.style.background = "";
+            selected.el.style.background = "";
+          }, 1000);
+        }
+      }
+
+      selected = null;
+      saveUserData();
+    }
+
+    function saveUserData() {
+      const progress = {mistakes, mistakeCount, used: Array.from(usedIndexes)};
+      localStorage.setItem("progress_" + user, JSON.stringify(progress));
+    }
+
+    function loadUserData() {
+      const data = JSON.parse(localStorage.getItem("progress_" + user) || "{}");
+      mistakes = data.mistakes || [];
+      mistakeCount = data.mistakeCount || 0;
+      usedIndexes = new Set(data.used || []);
+    }
+
+    function showAdmin() {
+      document.getElementById("game-screen").classList.add("hidden");
+      document.getElementById("admin-screen").classList.remove("hidden");
+    }
+
+    function closeAdmin() {
+      document.getElementById("admin-screen").classList.add("hidden");
+      document.getElementById("game-screen").classList.remove("hidden");
+    }
+
+    function addUser() {
+      const u = document.getElementById("new-username").value.trim().toLowerCase();
+      const p = document.getElementById("new-password").value.trim().toLowerCase();
+      if (!u || !p) return alert("Boş bırakma!");
+      const users = JSON.parse(localStorage.getItem("users") || "{}");
+      users[u] = p;
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("Kullanıcı eklendi.");
+    }
+
+    // Otomatik giriş varsa
+    if (localStorage.getItem("currentUser")) {
+      document.getElementById("login-screen").classList.add("hidden");
+      document.getElementById("game-screen").classList.remove("hidden");
+      user = localStorage.getItem("currentUser");
+      if (user === "emre") document.getElementById("admin-panel-btn").classList.remove("hidden");
+      loadUserData();
+      renderGame();
+    }
   </script>
 </body>
 </html>
