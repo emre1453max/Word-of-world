@@ -1,36 +1,36 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Kelime Eşleştirme Oyunu</title>
   <style>
     :root {
-      --bg: #ffffff;
-      --text: #000000;
-      --card: #f2f2f2;
+      --bg: #fff;
+      --text: #000;
+      --card: #f0f0f0;
     }
     body.dark {
       --bg: #121212;
       --text: #ffffff;
-      --card: #1f1f1f;
+      --card: #2a2a2a;
     }
     body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
       transition: 0.3s;
     }
     .container { padding: 20px; }
     .hidden { display: none; }
     .btn {
-      padding: 10px 15px;
-      margin: 5px;
-      border: none;
       background: #007bff;
-      color: white;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
       border-radius: 4px;
+      margin: 5px;
       cursor: pointer;
     }
     .topbar {
@@ -51,13 +51,14 @@
       gap: 10px;
     }
     .card {
-      padding: 10px 20px;
       background: var(--card);
-      border-radius: 6px;
+      padding: 10px 20px;
+      border-radius: 5px;
       cursor: pointer;
       text-align: center;
+      transition: background 0.2s;
     }
-    .card:hover { background: #d3eaff; }
+    .card:hover { background: #cfe2ff; }
     #mistake-list {
       display: none;
       position: absolute;
@@ -75,11 +76,10 @@
   </style>
 </head>
 <body>
-
   <div id="login-screen" class="container">
     <h2>Giriş Yap</h2>
     <input id="username" placeholder="Kullanıcı Adı"><br><br>
-    <input id="password" placeholder="Şifre" type="password"><br><br>
+    <input id="password" type="password" placeholder="Şifre"><br><br>
     <button class="btn" onclick="login()">Giriş</button>
   </div>
 
@@ -90,9 +90,6 @@
         <button class="btn" onclick="toggleMistakes()">❌ Yanlışlar</button>
         <button class="btn" onclick="logout()">Çıkış</button>
       </div>
-      <div id="admin-panel-btn" class="hidden">
-        <button class="btn" onclick="showAdmin()">👑 Admin Panel</button>
-      </div>
     </div>
     <div id="mistake-list"></div>
     <div class="columns">
@@ -101,39 +98,29 @@
     </div>
   </div>
 
-  <div id="admin-screen" class="container hidden">
-    <h3>Yeni Kullanıcı Ekle</h3>
-    <input id="new-username" placeholder="Yeni kullanıcı adı"><br><br>
-    <input id="new-password" placeholder="Yeni şifre"><br><br>
-    <button class="btn" onclick="addUser()">Ekle</button>
-    <button class="btn" onclick="closeAdmin()">Geri</button>
-  </div>
-
   <script>
     const words = [
-      {en:"apple", tr:"elma"}, {en:"book", tr:"kitap"}, {en:"car", tr:"araba"}, {en:"cat", tr:"kedi"},
-      {en:"dog", tr:"köpek"}, {en:"milk", tr:"süt"}, {en:"bread", tr:"ekmek"}, {en:"sun", tr:"güneş"},
-      {en:"moon", tr:"ay"}, {en:"tree", tr:"ağaç"}, {en:"chair", tr:"sandalye"}, {en:"table", tr:"masa"},
-      {en:"door", tr:"kapı"}, {en:"water", tr:"su"}, {en:"pen", tr:"kalem"}, {en:"blue", tr:"mavi"}
+      {en: "apple", tr: "elma"}, {en: "book", tr: "kitap"}, {en: "car", tr: "araba"}, {en: "cat", tr: "kedi"},
+      {en: "dog", tr: "köpek"}, {en: "milk", tr: "süt"}, {en: "bread", tr: "ekmek"}, {en: "sun", tr: "güneş"},
+      {en: "moon", tr: "ay"}, {en: "tree", tr: "ağaç"}, {en: "chair", tr: "sandalye"}, {en: "table", tr: "masa"},
+      {en: "door", tr: "kapı"}, {en: "water", tr: "su"}, {en: "pen", tr: "kalem"}, {en: "blue", tr: "mavi"},
+      {en: "red", tr: "kırmızı"}, {en: "bird", tr: "kuş"}, {en: "window", tr: "pencere"}, {en: "school", tr: "okul"}
     ];
 
     let user = null;
     let selected = null;
-    let matches = 0;
+    let used = [];
     let mistakes = [];
     let mistakeCount = 0;
-    let usedIndices = new Set();
-    let currentSet = [];
 
     function login() {
       const u = document.getElementById("username").value.trim().toLowerCase();
       const p = document.getElementById("password").value.trim().toLowerCase();
-      const users = JSON.parse(localStorage.getItem("users") || "{}");
-      if ((u === "emre" && p === "1453") || users[u] === p) {
+      if ((u === "emre" && p === "1453") || getUsers()[u] === p) {
         user = u;
+        loadProgress();
         document.getElementById("login-screen").classList.add("hidden");
         document.getElementById("game-screen").classList.remove("hidden");
-        if (u === "emre") document.getElementById("admin-panel-btn").classList.remove("hidden");
         renderSet();
       } else {
         alert("Giriş başarısız.");
@@ -148,6 +135,21 @@
       document.body.classList.toggle("dark");
     }
 
+    function getUsers() {
+      return JSON.parse(localStorage.getItem("users") || "{}");
+    }
+
+    function loadProgress() {
+      const data = JSON.parse(localStorage.getItem("progress_" + user) || "{}");
+      used = data.used || [];
+      mistakes = data.mistakes || [];
+      mistakeCount = mistakes.length;
+    }
+
+    function saveProgress() {
+      localStorage.setItem("progress_" + user, JSON.stringify({used, mistakes}));
+    }
+
     function toggleMistakes() {
       const box = document.getElementById("mistake-list");
       if (box.style.display === "block") {
@@ -159,22 +161,26 @@
     }
 
     function renderSet() {
-      const available = words.filter((_, i) => !usedIndices.has(i));
-      if (available.length < 5) return alert("Tüm kelimeler kullanıldı.");
+      if (used.length >= words.length) {
+        alert("Tüm kelimeleri tamamladınız!");
+        return;
+      }
 
-      currentSet = available.sort(() => 0.5 - Math.random()).slice(0, 5);
-      currentSet.forEach(w => usedIndices.add(words.indexOf(w)));
+      const unused = words.map((w, i) => ({...w, i})).filter(w => !used.includes(w.i));
+      const chosen = unused.sort(() => Math.random() - 0.5).slice(0, 5);
+      chosen.forEach(w => used.push(w.i));
+      saveProgress();
 
-      const english = document.getElementById("english-col");
-      const turkish = document.getElementById("turkish-col");
-      english.innerHTML = "";
-      turkish.innerHTML = "";
+      const enCol = document.getElementById("english-col");
+      const trCol = document.getElementById("turkish-col");
+      enCol.innerHTML = "";
+      trCol.innerHTML = "";
 
-      const shuffledEN = [...currentSet].sort(() => 0.5 - Math.random());
-      const shuffledTR = [...currentSet].sort(() => 0.5 - Math.random());
+      const enWords = [...chosen].sort(() => Math.random() - 0.5);
+      const trWords = [...chosen].sort(() => Math.random() - 0.5);
 
-      shuffledEN.forEach(w => english.appendChild(createCard(w.en, w.tr, "en")));
-      shuffledTR.forEach(w => turkish.appendChild(createCard(w.tr, w.en, "tr")));
+      enWords.forEach(w => enCol.appendChild(createCard(w.en, w.tr, "en")));
+      trWords.forEach(w => trCol.appendChild(createCard(w.tr, w.en, "tr")));
     }
 
     function createCard(text, match, lang) {
@@ -194,7 +200,7 @@
 
       if (!selected) {
         selected = {el, text, match, lang};
-        el.style.background = "#a0d8f1";
+        el.style.background = "#add8e6";
         return;
       }
 
@@ -203,23 +209,19 @@
         el.style.background = "#90ee90";
         selected.el.onclick = null;
         el.onclick = null;
-        matches++;
-
         setTimeout(() => {
-          const totalMatched = document.querySelectorAll(".card[onclick='null']").length / 2;
-          if (totalMatched >= 5) {
-            matches = 0;
-            renderSet();
-          }
-        }, 500);
+          if (document.querySelectorAll(".card[onclick]").length === 0) renderSet();
+        }, 400);
       } else {
         selected.el.style.background = "#f08080";
         el.style.background = "#f08080";
-        mistakes.push(`${selected.text} ↔ ${text}`);
+        const wrong = `${selected.text} ↔ ${text}`;
+        mistakes.push(wrong);
         mistakeCount++;
+        saveProgress();
         if (mistakeCount >= 5) {
-          alert("5 yanlış yapıldı! Oyun bitti.");
-          document.querySelectorAll(".card").forEach(card => card.onclick = null);
+          alert("5 yanlış yapıldı. Oyun bitti.");
+          document.querySelectorAll(".card").forEach(c => c.onclick = null);
         }
         setTimeout(() => {
           selected.el.style.background = "";
@@ -227,26 +229,6 @@
         }, 800);
       }
       selected = null;
-    }
-
-    function showAdmin() {
-      document.getElementById("game-screen").classList.add("hidden");
-      document.getElementById("admin-screen").classList.remove("hidden");
-    }
-
-    function closeAdmin() {
-      document.getElementById("admin-screen").classList.add("hidden");
-      document.getElementById("game-screen").classList.remove("hidden");
-    }
-
-    function addUser() {
-      const u = document.getElementById("new-username").value.trim().toLowerCase();
-      const p = document.getElementById("new-password").value.trim().toLowerCase();
-      if (!u || !p) return alert("Boş bırakmayın.");
-      const users = JSON.parse(localStorage.getItem("users") || "{}");
-      users[u] = p;
-      localStorage.setItem("users", JSON.stringify(users));
-      alert("Kullanıcı eklendi.");
     }
   </script>
 </body>
